@@ -51,10 +51,10 @@ let category: StaticString = "ImageDecoder"
 Unlike os_log, Chronicle does not use special compiler optimization passes to reduce logging overhead. Instead, it uses the `#log` macro and careful inlining to collapse the code into direct writes to the logging buffer. Since it is a library that you ship with your app, it has no ABI concerns beyond the format of the log itself.
 
 ## Log format
-By default, Chronicle logs to a ".chronicle" bundle. Inside it are two files. The first is metadata.json, which contains data needed to reconstruct the logs. In particular, it contains the log version, loaded images (to resolve strings), logger names, and timing information.
+By default, Chronicle logs to a ".chronicle" bundle. Inside it are a directory and two files. The first file is metadata.json, which contains data needed to reconstruct the logs. In particular, it contains the log version, logger names, timing information, and some string table information. The string tables (currently, a wholesale dump of `__TEXT,__cstring` from images outside of the shared cache) themselves are stored in the directory called strings, with a filename that represents the load address for the section and the contents of the file being the strings data.
 
 ### Buffer format
-The actual logs themselves are stored in a file called buffer, and it has the following high-level format:
+The actual logs themselves are stored in the other file (called buffer) and it has the following high-level format:
 
 ```
 [array of log messages]
