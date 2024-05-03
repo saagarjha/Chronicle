@@ -186,7 +186,6 @@ This design means that all the writes and sizing happens inlined at the call sit
 **Chronicle is not yet ready for general-purpose use**. In fact it may never be ready for that. It was designed as a test, but also to support [Ensemble](https://github.com/saagarjha/Ensemble). It has many serious limitations:
 
 * It may evolve or break without warning.
-* There is no tooling to read logs yet.
 * Optimizations are done with underscored compiler attributes I barely understand.
 * Macros are parsed without [swift-syntax](https://github.com/apple/swift-syntax), using string replacement.
 

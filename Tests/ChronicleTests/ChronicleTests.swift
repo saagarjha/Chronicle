@@ -215,4 +215,24 @@ final class ChronicleTests: XCTestCase {
 			$0 == 0
 		})
 	}
+	
+	func testEpilog() throws {
+		var metadata: Metadata?
+		var strings: [UnsafeRawBufferPointer]?
+		let (chronicle, buffer) = Self.inMemoryChronicleWithBuffer(size: 1_000) {
+			metadata = $0
+			strings = $1
+		}
+
+		let logger = try chronicle.logger(name: "test")
+		#log(logger, "Invocation: \(String(cString: getprogname())) [\(CommandLine.argc) arguments]")
+		
+		let epilog = Epilog(buffer: Data(buffer), metadata: metadata!, strings: strings!.map {
+			(UInt64(UInt(bitPattern: $0.baseAddress)), Data($0))
+		})
+		
+		XCTAssert(["Invocation: \(String(cString: getprogname())) [\(CommandLine.argc) arguments]"].elementsEqual(epilog.entries.map {
+			$0.fields.map(\.description).joined()
+		}))
+	}
 }
