@@ -189,11 +189,11 @@ struct Main {
 					}.joined(separator: "\n\t\t"))
 					
 					\(arguments.indices.map {
-						"let argument\($0)Context = type(of: argument\($0))._LogContext(value: argument\($0))"
+						"let argument\($0)Context = Swift.type(of: argument\($0))._LogContext(value: argument\($0))"
 					}.joined(separator: "\n\t\t"))
 					
 					\(arguments.indices.map {
-						"let argument\($0)Size = type(of: argument\($0)).__log_size(context: argument\($0)Context)"
+						"let argument\($0)Size = Swift.type(of: argument\($0)).__log_size(context: argument\($0)Context)"
 					}.joined(separator: "\n\t\t"))
 					
 					let argumentsCount = \(arguments.count) as UInt8
@@ -206,10 +206,10 @@ struct Main {
 						return
 					}
 					
-					buffer.storeBytes(of: argumentsCount, as: type(of: argumentsCount))
+					buffer.storeBytes(of: argumentsCount, as: Swift.type(of: argumentsCount))
 					
 					\(arguments.indices.map {
-						"buffer.storeBytes(of: type(of: argument\($0)).__log_type, toByteOffset: MemoryLayout.size(ofValue: argumentsCount) + \($0), as: UInt8.self)"
+						"buffer.storeBytes(of: Swift.type(of: argument\($0)).__log_type, toByteOffset: MemoryLayout.size(ofValue: argumentsCount) + \($0), as: UInt8.self)"
 					}.joined(separator: "\n\t\t"))
 					
 					#if DEBUG
@@ -221,10 +221,10 @@ struct Main {
 					\(arguments.indices.map {
 						"""
 						#if DEBUG
-						type(of: argument\($0)).__log(into: UnsafeMutableRawBufferPointer(rebasing: buffer[offset..<offset + argument\($0)Size]), context: argument\($0)Context)
+						Swift.type(of: argument\($0)).__log(into: UnsafeMutableRawBufferPointer(rebasing: buffer[offset..<offset + argument\($0)Size]), context: argument\($0)Context)
 						offset += argument\($0)Size
 						#else
-						type(of: argument\($0)).__log(into: buffer + offset, context: argument\($0)Context)
+						Swift.type(of: argument\($0)).__log(into: buffer + offset, context: argument\($0)Context)
 						offset &+= argument\($0)Size
 						#endif
 						"""
