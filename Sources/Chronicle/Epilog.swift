@@ -23,18 +23,31 @@ public struct Epilog {
 				$0 + Self.strings(in: $1.1, relativeTo: $1.0)
 			})
 	}
-
-	public init(url: URL) throws {
+	
+	init(_url url: URL, stringsTransform: (Data, Metadatav1) throws -> Data) throws {
 		let buffer = try Data(contentsOf: url.appendingPathComponent(Chronicle.bufferPath))
 		let metadata = try JSONDecoder().decode(Metadatav1.self, from: try Data(contentsOf: url.appendingPathComponent(Chronicle.metadataPath)))
+		
 		let _strings = url.appendingPathComponent(Chronicle.stringsPath)
 		let strings: [(UInt64, Data)] = try FileManager.default.contentsOfDirectory(atPath: _strings.path).compactMap {
 			guard let base = UInt64($0, radix: Metadatav1.radix) else {
 				return nil
 			}
-			return (base, try Data(contentsOf: _strings.appendingPathComponent($0)))
+			return (base, try stringsTransform(Data(contentsOf: _strings.appendingPathComponent($0)), metadata))
 		}
 		self.init(buffer: buffer, metadata: metadata, strings: strings)
+	}
+
+	public init(url: URL) throws {
+		try self.init(_url: url) {
+			guard $1.compressedStrings else {
+				return $0
+			}
+			guard #available(macOS 10.15, iOS 13, macCatalyst 13.1, tvOS 13, watchOS 6, *) else {
+				preconditionFailure()
+			}
+			return try ($0 as NSData).decompressed(using: .lzfse) as Data
+		}
 	}
 
 	static func readLogs(in buffer: Data) -> (Data, Data) {

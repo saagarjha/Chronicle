@@ -24,6 +24,13 @@ public struct Metadatav1: Codable {
 
 	public var version = 1
 	public var bitWidth = Int.bitWidth
+	public var compressedStrings: Bool = {
+		if #available(macOS 10.15, iOS 13, macCatalyst 13.1, tvOS 13, watchOS 6, *) {
+			return true
+		} else {
+			return false
+		}
+	}()
 	public let strings: [Strings]
 	public let loggers: [String]
 	public let timing: Timing
@@ -118,7 +125,11 @@ public struct Chronicle {
 					while name.count < MemoryLayout<UInt>.size * (1 << 8).trailingZeroBitCount / Metadata.radix.trailingZeroBitCount {
 						name = "0\(name)"
 					}
-					try Data(data).write(to: strings.appendingPathComponent(name))
+					if #available(macOS 10.15, iOS 13, macCatalyst 13.1, tvOS 13, watchOS 6, *) {
+						try NSData(bytesNoCopy: UnsafeMutableRawPointer(mutating: data.baseAddress!), length: data.count, freeWhenDone: false).compressed(using: .lzfse).write(to: strings.appendingPathComponent(name))
+					} else {
+						try Data(data).write(to: strings.appendingPathComponent(name))
+					}
 				}
 			})
 	}
