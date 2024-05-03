@@ -17,10 +17,17 @@ public struct Metadatav1: Codable {
 		public let nanoseconds: Int
 	}
 
+	public struct Strings: Codable {
+		public let start: UInt64
+		public let size: UInt64
+	}
+
 	public var version = 1
-	public let images: [Image]
+	public let strings: [Strings]
 	public let loggers: [String]
 	public let timing: Timing
+	
+	static let radix = 0x10
 }
 
 public typealias Metadata = Metadatav1
@@ -52,22 +59,26 @@ public struct Chronicle {
 
 	static let metadataPath = "metadata.json"
 	static let bufferPath = "buffer"
+	static let stringsPath = "strings"
 
-	let metadataUpdate: (Metadata) throws -> Void
+	let metadataUpdate: (Metadata, [UnsafeRawBufferPointer]) throws -> Void
 	let buffer: Buffer
 	let guts: Guts
-	
-	public init(buffer: UnsafeMutableRawBufferPointer, cleanup: (() -> Void)? = nil, metadataUpdate: @escaping (Metadata) throws -> Void) rethrows {		
-		ImageTracker.initializeIfNeeded()
+
+	public init(buffer: UnsafeMutableRawBufferPointer, cleanup: (() -> Void)? = nil, metadataUpdate: @escaping (Metadata, [UnsafeRawBufferPointer]) throws -> Void) rethrows {
+		StringCollector.initializeIfNeeded()
 
 		self.buffer = Buffer(buffer: buffer)
 		guts = Guts(cleanup: cleanup)
 		self.metadataUpdate = metadataUpdate
-		try metadataUpdate(updatedMetadata())
+		try metadataUpdate(updatedMetadata(), StringCollector.strings)
 	}
 
 	public init(url: URL, bufferSize: Int) throws {
 		try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
+		
+		let strings = url.appendingPathComponent(Self.stringsPath)
+		try FileManager.default.createDirectory(at: strings, withIntermediateDirectories: false)
 
 		let _metadata = open(url.appendingPathComponent(Self.metadataPath).path, O_RDWR | O_CREAT, 0o644)
 		guard _metadata >= 0 else {
@@ -90,12 +101,25 @@ public struct Chronicle {
 		close(fd)
 		let buffer = UnsafeMutableRawBufferPointer(start: _buffer, count: bufferSize)
 
-		try self.init(buffer: buffer, cleanup: {
-			munmap(buffer.baseAddress, buffer.count)
-		}, metadataUpdate: {
-			metadata.seek(toFileOffset: 0)
-			try metadata.write(JSONEncoder().encode($0))
-		})
+		try self.init(
+			buffer: buffer,
+			cleanup: {
+				munmap(buffer.baseAddress, buffer.count)
+			},
+			metadataUpdate: {
+				metadata.seek(toFileOffset: 0)
+				try metadata.write(JSONEncoder().encode($0))
+				let existing = try Set(FileManager.default.contentsOfDirectory(atPath: strings.path).compactMap {
+					UInt($0, radix: Metadata.radix).map(UnsafeRawPointer.init)
+				})
+				for data in $1 where !existing.contains(data.baseAddress) {
+					var name = String(UInt(bitPattern: data.baseAddress), radix: Metadata.radix)
+					while name.count < MemoryLayout<UInt>.size * (1 << 8).trailingZeroBitCount / Metadata.radix.trailingZeroBitCount {
+						name = "0\(name)"
+					}
+					try Data(data).write(to: strings.appendingPathComponent(name))
+				}
+			})
 	}
 
 	func updatedMetadata() -> Metadata {
@@ -106,7 +130,9 @@ public struct Chronicle {
 		clock_gettime(CLOCK_REALTIME, &time)
 
 		return Metadata(
-			images: ImageTracker.images,
+			strings: StringCollector.strings.map {
+				.init(start: UInt64(UInt(bitPattern: $0.baseAddress)), size: UInt64($0.count))
+			},
 			loggers: guts.loggers,
 			timing: .init(
 				numerator: timebase.numer,
@@ -124,7 +150,7 @@ public struct Chronicle {
 		let metadata = updatedMetadata()
 		os_unfair_lock_unlock(guts.lock)
 
-		try metadataUpdate(metadata)
+		try metadataUpdate(metadata, StringCollector.strings)
 		return Logger(chronicle: self, id: id)
 	}
 

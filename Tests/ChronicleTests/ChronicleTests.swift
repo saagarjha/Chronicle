@@ -3,7 +3,7 @@ import Foundation
 import XCTest
 
 final class ChronicleTests: XCTestCase {
-	static func inMemoryChronicleWithBuffer(size: Int, metadataUpdate: ((Metadata) -> Void)? = nil) -> (Chronicle, UnsafeMutableRawBufferPointer) {
+	static func inMemoryChronicleWithBuffer(size: Int, metadataUpdate: ((Metadata, [UnsafeRawBufferPointer]) -> Void)? = nil) -> (Chronicle, UnsafeMutableRawBufferPointer) {
 		let buffer = UnsafeMutableRawBufferPointer.allocate(byteCount: size, alignment: 1)
 		return (
 			Chronicle(
@@ -12,12 +12,12 @@ final class ChronicleTests: XCTestCase {
 					buffer.deallocate()
 				}
 			) {
-				metadataUpdate?($0)
+				metadataUpdate?($0, $1)
 			}, buffer
 		)
 	}
 
-	static func inMemoryChronicle(size: Int, metadataUpdate: ((Metadata) -> Void)? = nil) -> Chronicle {
+	static func inMemoryChronicle(size: Int, metadataUpdate: ((Metadata, [UnsafeRawBufferPointer]) -> Void)? = nil) -> Chronicle {
 		inMemoryChronicleWithBuffer(size: size, metadataUpdate: metadataUpdate).0
 	}
 
@@ -35,13 +35,18 @@ final class ChronicleTests: XCTestCase {
 
 	func testMetadata() {
 		var _metadata: Metadata?
-		let chronicle = Self.inMemoryChronicle(size: 1) {
-			_metadata = $0
+		let chronicle = Self.inMemoryChronicle(size: 1) { metadata, _ in
+			_metadata = metadata
 		}
 		_ = chronicle
 		let metadata = _metadata!
-
-		XCTAssertNotNil(metadata.images.map(\.base).firstIndex(of: #dsohandle))
+		
+		let string: StaticString = "test"
+		
+		XCTAssertNotNil(metadata.strings.first {
+			memmem(UnsafeRawPointer(bitPattern: UInt($0.start)), Int($0.size), string.utf8Start, string.utf8CodeUnitCount) != nil
+		})
+		
 		XCTAssertEqual(TimeInterval(metadata.timing.seconds), Date().timeIntervalSince1970, accuracy: 1)
 		let time = mach_continuous_time()
 		XCTAssertEqual(TimeInterval(time - metadata.timing.timestamp) * TimeInterval(metadata.timing.numerator) / TimeInterval(metadata.timing.denominator) / TimeInterval(NSEC_PER_SEC), 0, accuracy: 1)
@@ -50,14 +55,14 @@ final class ChronicleTests: XCTestCase {
 	func testLoggers() throws {
 		let loggers = ["LoggerA", "LoggerB"]
 
-		var metadata: Metadata?
-		let chronicle = Self.inMemoryChronicle(size: 1) {
-			metadata = $0
+		var _metadata: Metadata?
+		let chronicle = Self.inMemoryChronicle(size: 1) { metadata, _ in
+			_metadata = metadata
 		}
 		for logger in loggers {
 			_ = try chronicle.logger(name: logger)
 		}
-		XCTAssertEqual(loggers, metadata?.loggers)
+		XCTAssertEqual(loggers, _metadata!.loggers)
 	}
 
 	func testFormat() throws {
