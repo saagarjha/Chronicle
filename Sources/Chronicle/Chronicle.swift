@@ -23,6 +23,7 @@ public struct Metadatav1: Codable {
 	}
 
 	public var version = 1
+	public var bitWidth = Int.bitWidth
 	public let strings: [Strings]
 	public let loggers: [String]
 	public let timing: Timing
