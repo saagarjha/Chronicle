@@ -6,6 +6,7 @@ class Buffer {
 		case preparing
 		case prepared
 		case completing
+		case completed
 		case used
 	}
 
@@ -105,6 +106,8 @@ class Buffer {
 		let size = Size(truncatingIfNeeded: subtract(newCheckpoint, oldCheckpoint))
 		#endif
 		buffer.storeBytes(of: size, toByteOffset: subtract(newCheckpoint, MemoryLayout.size(ofValue: size)), as: type(of: size))
+		
+		updateProgress(.completed)
 		
 		checkpoint = newCheckpoint
 		updateProgress(.unused)

@@ -23,11 +23,11 @@ public struct Epilog {
 				$0 + Self.strings(in: $1.1, relativeTo: $1.0)
 			})
 	}
-	
+
 	init(_url url: URL, stringsTransform: (Data, Metadatav1) throws -> Data) throws {
 		let buffer = try Data(contentsOf: url.appendingPathComponent(Chronicle.bufferPath))
 		let metadata = try JSONDecoder().decode(Metadatav1.self, from: try Data(contentsOf: url.appendingPathComponent(Chronicle.metadataPath)))
-		
+
 		let _strings = url.appendingPathComponent(Chronicle.stringsPath)
 		let strings: [(UInt64, Data)] = try FileManager.default.contentsOfDirectory(atPath: _strings.path).compactMap {
 			guard let base = UInt64($0, radix: Metadatav1.radix) else {
@@ -73,21 +73,23 @@ public struct Epilog {
 				case .used:
 					next = true
 					fallthrough
-				case .completing:
+				case .completed:
 					advance(by: MemoryLayout<Buffer.Progress.RawValue>.size)
 					fallthrough
-				case .prepared:
+				case .completing:
 					advance(by: MemoryLayout<Buffer.Size>.size)
 					fallthrough
-				case .preparing:
+				case .prepared:
 					advance(
 						by: Int(
 							buffer[_last...].withUnsafeBytes {
 								$0.baseAddress!.loadUnaligned(fromByteOffset: -MemoryLayout<Buffer.Size>.size, as: Buffer.Size.self)
 							}))
 					fallthrough
-				case .unused:
+				case .preparing:
 					advance(by: MemoryLayout<Buffer.Size>.size)
+				case .unused:
+					advance(by: MemoryLayout<Buffer.Progress.RawValue>.size)
 			}
 
 			for advance in advances.reversed() {

@@ -97,13 +97,14 @@ Log messages have a fixed format and are stored back-to-back with no padding. Th
 * `UInt32` message size
 
 #### Header
-The header is a number between 0 and 4 inclusive, and indicates how complete the message is. If the previous message is complete, then the next message will be guaranteed to have a valid header that can be read (i.e. the header for the next message is written before the last message is marked as complete). The meaning for these values are as follows:
+The header is a number between 0 and 5 inclusive, and indicates how complete the message is. If the previous message is complete, then the next message will be guaranteed to have a valid header that can be read (i.e. the header for the next message is written before the last message is marked as complete). The meaning for these values are as follows:
 
 * 0: The message is in unused state. (All bytes past the header are untouched.)
 * 1: The message's payload size has started being written. (The bytes for the payload size may be trashed, but bytes past that are untouched.)
 * 2: The message's payload size is committed and the payload has started being written. (The payload size is valid, and the payload afterwards may be trashed.)
 * 3: The message's message size has started being written. (The payload is finished. The bytes for the message size may be trashed.)
-* 4: The message's message size has been written. (The message is complete. The header for the next message is valid.)
+* 4: The message's message size has been written to completion. (The next message's header may be trashed.)
+* 5: The message is complete. (The header for the next message is valid to parse.)
 
 #### Payload size
 The payload size includes the size to encode the timestamp, logger ID, log component count, component type string, and log component data.
