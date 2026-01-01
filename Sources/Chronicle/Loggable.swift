@@ -29,7 +29,9 @@ extension __Loggable {
 	// The optimizer seems to need this to coalesce writes of these together
 	@_transparent
 	public static var __log_type: UInt8 {
-		___log_type.utf8Start.pointee
+		___log_type.withUTF8Buffer {
+			$0.first!
+		}
 	}
 }
 
