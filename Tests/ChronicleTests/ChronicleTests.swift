@@ -1,6 +1,7 @@
-import Chronicle
 import Foundation
 import XCTest
+
+@testable import Chronicle
 
 final class ChronicleTests: XCTestCase {
 	static func inMemoryChronicleWithBuffer(size: Int, metadataUpdate: ((Metadata, [UnsafeRawBufferPointer]) -> Void)? = nil) -> (Chronicle, UnsafeMutableRawBufferPointer) {
@@ -92,10 +93,10 @@ final class ChronicleTests: XCTestCase {
 		]
 
 		let header = [
-			UInt8(0x04)  // .used
+			Buffer.Progress.used.rawValue
 		]
 		let nextHeader = [
-			UInt8(0x00)  // .unused
+			Buffer.Progress.unused.rawValue
 		]
 
 		let timestamp: UInt64 = 0
