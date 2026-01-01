@@ -44,10 +44,11 @@ enum StringCollector {
 		}
 		var extent = 0
 		guard let range = _dyld_get_shared_cache_range(&extent),
-			  base < range || base >= range + extent else {
+			base < range || base >= range + extent
+		else {
 			return
 		}
-		
+
 		strings.append(UnsafeRawBufferPointer(start: base, count: Int(size)))
 		_strings.insert(base)
 	}

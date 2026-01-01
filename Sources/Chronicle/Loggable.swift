@@ -6,7 +6,7 @@ public protocol __LogContext {
 public struct _PassthroughLogContext<T>: __LogContext {
 	@usableFromInline
 	let value: T
-	
+
 	public init(value: T) {
 		self.value = value
 	}

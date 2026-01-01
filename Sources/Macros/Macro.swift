@@ -74,25 +74,25 @@ struct Main {
 					state = .start(0)
 				case (.code, _):
 					stripped.append(c)
-				case let (.start(level), "*"):
+				case (.start(let level), "*"):
 					state = .comment(level + 1)
-				case let (.start(level), _):
+				case (.start(let level), _):
 					if level == 0 {
 						state = .code
 						stripped.append("/")
 						stripped.append(c)
 					}
-				case let (.comment(level), "*"):
+				case (.comment(let level), "*"):
 					state = .end(level)
 				case (.comment, _):
 					break
-				case let (.end(level), "/"):
+				case (.end(let level), "/"):
 					if level == 0 {
 						state = .code
 					} else {
 						state = .comment(level - 1)
 					}
-				case let (.end(level), _):
+				case (.end(let level), _):
 					state = .comment(level)
 			}
 		}
@@ -143,7 +143,7 @@ struct Main {
 		}
 
 		switch state {
-			case let .literal(string):
+			case .literal(let string):
 				if !string.isEmpty {
 					arguments.append("string\(strings.count)")
 					strings.append(String(string))

@@ -3,17 +3,17 @@ public struct _ChronicleLogMessage: ExpressibleByStringLiteral, ExpressibleByStr
 	public struct StringInterpolation: StringInterpolationProtocol {
 		public init(literalCapacity: Int, interpolationCount: Int) {
 		}
-		
+
 		public func appendLiteral(_ literal: StaticString) {
 		}
-		
+
 		public func appendInterpolation(_: some _Loggable) {
 		}
 	}
-	
+
 	public init(stringLiteral value: StaticString) {
 	}
-	
+
 	public init(stringInterpolation: StringInterpolation) {
 	}
 }

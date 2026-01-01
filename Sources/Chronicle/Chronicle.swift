@@ -34,7 +34,7 @@ public struct Metadatav1: Codable {
 	public let strings: [Strings]
 	public let loggers: [String]
 	public let timing: Timing
-	
+
 	static let radix = 0x10
 }
 
@@ -84,7 +84,7 @@ public struct Chronicle {
 
 	public init(url: URL, bufferSize: Int) throws {
 		try FileManager.default.createDirectory(at: url, withIntermediateDirectories: false)
-		
+
 		let strings = url.appendingPathComponent(Self.stringsPath)
 		try FileManager.default.createDirectory(at: strings, withIntermediateDirectories: false)
 
@@ -117,9 +117,10 @@ public struct Chronicle {
 			metadataUpdate: {
 				metadata.seek(toFileOffset: 0)
 				try metadata.write(JSONEncoder().encode($0))
-				let existing = try Set(FileManager.default.contentsOfDirectory(atPath: strings.path).compactMap {
-					UInt($0, radix: Metadata.radix).map(UnsafeRawPointer.init)
-				})
+				let existing = try Set(
+					FileManager.default.contentsOfDirectory(atPath: strings.path).compactMap {
+						UInt($0, radix: Metadata.radix).map(UnsafeRawPointer.init)
+					})
 				for data in $1 where !existing.contains(data.baseAddress) {
 					var name = String(UInt(bitPattern: data.baseAddress), radix: Metadata.radix)
 					while name.count < MemoryLayout<UInt>.size * (1 << 8).trailingZeroBitCount / Metadata.radix.trailingZeroBitCount {

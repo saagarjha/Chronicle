@@ -41,13 +41,14 @@ final class ChronicleTests: XCTestCase {
 		}
 		_ = chronicle
 		let metadata = _metadata!
-		
+
 		let string: StaticString = "test"
-		
-		XCTAssertNotNil(metadata.strings.first {
-			memmem(UnsafeRawPointer(bitPattern: UInt($0.start)), Int($0.size), string.utf8Start, string.utf8CodeUnitCount) != nil
-		})
-		
+
+		XCTAssertNotNil(
+			metadata.strings.first {
+				memmem(UnsafeRawPointer(bitPattern: UInt($0.start)), Int($0.size), string.utf8Start, string.utf8CodeUnitCount) != nil
+			})
+
 		XCTAssertEqual(TimeInterval(metadata.timing.seconds), Date().timeIntervalSince1970, accuracy: 1)
 		let time = mach_continuous_time()
 		XCTAssertEqual(TimeInterval(time - metadata.timing.timestamp) * TimeInterval(metadata.timing.numerator) / TimeInterval(metadata.timing.denominator) / TimeInterval(NSEC_PER_SEC), 0, accuracy: 1)
@@ -135,68 +136,68 @@ final class ChronicleTests: XCTestCase {
 
 	func testTrailer() throws {
 		let baseSize =
-			MemoryLayout<UInt8>.size // header
-			+ MemoryLayout<UInt32>.size // payload size
-		+ MemoryLayout<UInt64>.size // timestamp
-		+ MemoryLayout<UInt16>.size // logger ID
-		+ MemoryLayout<UInt8>.size // argument count
-		+ 1 // types
-		+ MemoryLayout<Int>.size // string count
-		+ MemoryLayout<UInt32>.size // trailing size
-		+ MemoryLayout<UInt8>.size // next header
-		
+			MemoryLayout<UInt8>.size  // header
+			+ MemoryLayout<UInt32>.size  // payload size
+			+ MemoryLayout<UInt64>.size  // timestamp
+			+ MemoryLayout<UInt16>.size  // logger ID
+			+ MemoryLayout<UInt8>.size  // argument count
+			+ 1  // types
+			+ MemoryLayout<Int>.size  // string count
+			+ MemoryLayout<UInt32>.size  // trailing size
+			+ MemoryLayout<UInt8>.size  // next header
+
 		var string = ""
 		do {
 			let (chronicle, buffer) = Self.inMemoryChronicleWithBuffer(size: baseSize)
 			let logger = try chronicle.logger(name: "test")
-			
+
 			#log(logger, "\(string)")
 			#log(logger, "\(string)")
-			
+
 			XCTAssertEqual(buffer.last, 0)
 		}
-		
+
 		do {
 			let (chronicle, buffer) = Self.inMemoryChronicleWithBuffer(size: baseSize + 1)
 			let logger = try chronicle.logger(name: "test")
-			
+
 			#log(logger, "\(string)")
 			#log(logger, "\(string)")
-			
+
 			XCTAssertEqual(buffer.last, 1)
 		}
-		
+
 		string = "a"
 		do {
 			let (chronicle, buffer) = Self.inMemoryChronicleWithBuffer(size: baseSize + 1)
 			let logger = try chronicle.logger(name: "test")
-			
+
 			#log(logger, "\(string)")
 			#log(logger, "\(string)")
-			
+
 			XCTAssertEqual(buffer.last, 0)
 		}
-		
+
 		string = String(repeating: "a", count: baseSize)
 		do {
 			let (chronicle, buffer) = Self.inMemoryChronicleWithBuffer(size: baseSize * 3)
 			let logger = try chronicle.logger(name: "test")
-			
+
 			#log(logger, "\(string)")
 			#log(logger, "\(string)")
-			
+
 			XCTAssertEqual(buffer.last, UInt8(baseSize))
 		}
-		
+
 		let count = 1_000
 		string = String(repeating: "a", count: count)
 		do {
 			let (chronicle, buffer) = Self.inMemoryChronicleWithBuffer(size: baseSize + string.count * 2)
 			let logger = try chronicle.logger(name: "test")
-			
+
 			#log(logger, "\(string)")
 			#log(logger, "\(string)")
-			
+
 			var count = UInt(count)
 			var _buffer = Array(buffer)
 			while count != 0 {
@@ -205,18 +206,19 @@ final class ChronicleTests: XCTestCase {
 			}
 		}
 	}
-	
+
 	func testDisabled() throws {
 		let (chronicle, buffer) = Self.inMemoryChronicleWithBuffer(size: 1_000)
 		var logger = try chronicle.logger(name: "test")
 		logger.enabled = false
 		#log(logger, "Invocation: \(String(cString: getprogname())) [\(CommandLine.argc) arguments]")
 		#log(logger, "It's been \(Date.now.timeIntervalSince1970) seconds since the epoch")
-		XCTAssert(buffer.allSatisfy {
-			$0 == 0
-		})
+		XCTAssert(
+			buffer.allSatisfy {
+				$0 == 0
+			})
 	}
-	
+
 	func testEpilog() throws {
 		var metadata: Metadata?
 		var strings: [UnsafeRawBufferPointer]?
@@ -227,13 +229,17 @@ final class ChronicleTests: XCTestCase {
 
 		let logger = try chronicle.logger(name: "test")
 		#log(logger, "Invocation: \(String(cString: getprogname())) [\(CommandLine.argc) arguments]")
-		
-		let epilog = Epilog(buffer: Data(buffer), metadata: metadata!, strings: strings!.map {
-			(UInt64(UInt(bitPattern: $0.baseAddress)), Data($0))
-		})
-		
-		XCTAssert(["Invocation: \(String(cString: getprogname())) [\(CommandLine.argc) arguments]"].elementsEqual(epilog.entries.map {
-			$0.fields.map(\.description).joined()
-		}))
+
+		let epilog = Epilog(
+			buffer: Data(buffer), metadata: metadata!,
+			strings: strings!.map {
+				(UInt64(UInt(bitPattern: $0.baseAddress)), Data($0))
+			})
+
+		XCTAssert(
+			["Invocation: \(String(cString: getprogname())) [\(CommandLine.argc) arguments]"].elementsEqual(
+				epilog.entries.map {
+					$0.fields.map(\.description).joined()
+				}))
 	}
 }
