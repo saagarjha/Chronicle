@@ -29,6 +29,10 @@ struct IO {
 		size = data.withUnsafeBytes {
 			$0.loadUnaligned(as: type(of: size))
 		}
+		// Sometimes we get asked to read 0 bytes
+		guard size > 0 else {
+			return nil
+		}
 		return FileHandle.standardInput.readData(ofLength: Int(size))
 	}
 
